@@ -10,11 +10,9 @@ parser = argparse.ArgumentParser()
 #add line here to add an argument
 #args file upload to rosetta
 parser.add_argument("-f", "--pdb_file", help="name of the pdb file to process")
-parser.add_argument("-o", "--output_file", help="name of the output file")
+parser.add_argument("-o", "--output_directory", help="name of the output directory")
 parser.add_argument("-n", "--n_iterations", type=int, help="number of iterations to run")
 args = parser.parse_args()
-
-
 
 #load the pdb file
 pose = pose_from_pdb(args.pdb_file)
@@ -26,9 +24,21 @@ print(f"Loaded pose with {pose.total_residue()} residues from: {args.pdb_file}")
 mypose = pose
 total_residue = pose.total_residue() + 1
 
-
+# Packing
+tf = pyrosetta.rosetta.core.pack.task.TaskFactory()
 score = sfxn(mypose)
 print(f"Score: {score}")
+
+# Set up MoveMap for backbone and sidechain movement
+movemap = pyrosetta.rosetta.core.kinematics.MoveMap()
+movemap.set_bb(True)
+movemap.set_chi(True)
+# Minimizer setup
+min_opts = pyrosetta.rosetta.core.optimization.MinimizerOptions("lbfgs_armijo_atol", 0.01, True)
+minimizer = pyrosetta.rosetta.core.optimization.AtomTreeMinimizer()
+
+
+
 
 #Create Monte Carlo Protocol loop to Optimize Pose n times
 for i in range(args.n_iterations):
@@ -52,16 +62,22 @@ for i in range(args.n_iterations):
     mypose.set_phi(randres, orig_phi + phi_pert)
     mypose.set_psi(randres, orig_psi + psi_pert)
 
+    # Packing
     score = sfxn(mypose)
     print(f"Score: {score}")
+    print("Packing...")
+    task = tf.create_task_and_apply_taskoperations(mypose)
+    task.restrict_to_repacking()
+    pyrosetta.rosetta.core.pack.pack_rotamers(mypose, sfxn, task)
+    print("Packed")
+    minimizer.run(mypose, movemap, sfxn, min_opts)
+    print("Minimized")
+    score = sfxn(mypose)
     mc.boltzmann(score, mypose)
-    print(f"Accepted: {mc.has_accepted()}")
     print(f"Score: {score}")
-    print(f"Phi: {mypose.phi(randres)}")
-    print(f"Psi: {mypose.psi(randres)}")
 
-#save the pose to a PDB file
-mypose.dump_pdb(args.output_file)
-print(f"Saved pose to: {args.output_file}")
+pose = mc.lowest_score_pose()
+pose.dump_pdb("best_pose.pdb")
+print(f"Saved pose to: best_pose.pdb")
 
 
