@@ -16,6 +16,11 @@ args = parser.parse_args()
 pose = pose_from_pdb(args.pdb_file)
 print(f"Loaded pose with {pose.total_residue()} residues from: {args.pdb_file}")
 
+sfxn = get_fa_scorefxn()
+score = sfxn(pose)
+print(f"Score: {score}")
+
+
 
 
 
