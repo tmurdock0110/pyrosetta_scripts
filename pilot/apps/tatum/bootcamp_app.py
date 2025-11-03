@@ -54,7 +54,8 @@ for i in range(args.n_iterations):
     # uniformly distributed in the range [0..1) to an integer between 1 and N (the number of residues in your Pose) 
     # by random_number * N + 1.
     randres = pyrosetta.rosetta.numeric.random.uniform()
-    randres = int(randres * total_residue)
+    randres = int(randres * (total_residue))
+    randres = randres + 1
     print(f"Random residue: {randres}")
 
     orig_phi = mypose.phi(randres)
@@ -74,7 +75,11 @@ for i in range(args.n_iterations):
     print("Minimized")
     score = sfxn(mypose)
     mc.boltzmann(score, mypose)
+    print("Boltzmann...")
+    if mc.mc_accepted() == True:
+        print("Accepted!")
     print(f"Score: {score}")
+    
 
 pose = mc.lowest_score_pose()
 pose.dump_pdb("best_pose.pdb")
