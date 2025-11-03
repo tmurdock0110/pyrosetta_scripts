@@ -7,8 +7,15 @@ init(extra_options="-ignore_unrecognized_res")
 
 parser = argparse.ArgumentParser()
 #add line here to add an argument
-parser.add_argument("filename", help="the name of the file to process")
+#args file upload to rosetta
+parser.add_argument("-f", "--pdb_file", help="name of the pdb file to process")
+parser.add_argument("-o", "--output_file", help="name of the output file")
 args = parser.parse_args()
 
-#Test it by printing out the filename that was passed in.
-print(args.filename)
+#load the pdb file
+pose = pose_from_pdb(args.pdb_file)
+print(f"Loaded pose with {pose.total_residue()} residues from: {args.pdb_file}")
+
+
+
+
